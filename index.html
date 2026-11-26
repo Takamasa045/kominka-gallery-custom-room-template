@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>星降る和紙灯りのアトリエ</title>
+  <style>
+    :root {
+      --night-top: #090e1c;
+      --night-mid: #131c33;
+      --night-low: #1d2638;
+      --washi: #f7f0e2;
+      --washi-soft: rgba(247, 240, 226, 0.78);
+      --gold: #f4cc83;
+      --gold-glow: rgba(244, 204, 131, 0.35);
+      --ink: #241e18;
+      --panel: rgba(16, 21, 35, 0.74);
+      --line: rgba(247, 240, 226, 0.22);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 24%, #1b2847 0%, var(--night-mid) 45%, var(--night-top) 100%);
+      color: var(--washi);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", system-ui, serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    #sky {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hud-top {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .title-card {
+      pointer-events: auto;
+      padding: 12px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      max-width: 360px;
+    }
+
+    .title-eyebrow {
+      margin: 0 0 4px;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: var(--gold);
+      font-family: "Hiragino Sans", system-ui, sans-serif;
+    }
+
+    .title-card h1 {
+      margin: 0;
+      font-size: clamp(17px, 2.6vw, 22px);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .title-card p {
+      margin: 5px 0 0;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--washi-soft);
+      font-family: "Hiragino Sans", system-ui, sans-serif;
+    }
+
+    .controls {
+      pointer-events: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill-btn {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--washi);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-family: "Hiragino Sans", system-ui, sans-serif;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+    }
+
+    .pill-btn:hover,
+    .pill-btn:focus-visible {
+      border-color: var(--gold);
+      background: rgba(34, 42, 66, 0.9);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .pill-btn[aria-pressed="true"] {
+      border-color: var(--gold);
+      background: rgba(244, 204, 131, 0.22);
+      color: #fff6e1;
+    }
+
+    .gallery-stage {
+      position: fixed;
+      inset: 0;
+      perspective: 1100px;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .frames-cluster {
+      position: relative;
+      width: min(92vw, 940px);
+      height: min(64vh, 460px);
+      transform-style: preserve-3d;
+      transition: transform 140ms ease-out;
+    }
+
+    .art-frame {
+      position: absolute;
+      width: clamp(148px, 21vw, 215px);
+      padding: 10px 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(244, 204, 131, 0.45);
+      background: linear-gradient(180deg, rgba(251, 245, 233, 0.97) 0%, rgba(238, 226, 203, 0.95) 100%);
+      color: var(--ink);
+      box-shadow: 0 22px 46px rgba(4, 8, 20, 0.56), 0 0 28px var(--gold-glow);
+      cursor: pointer;
+      pointer-events: auto;
+      text-align: left;
+      transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
+    }
+
+    .art-frame:hover,
+    .art-frame:focus-visible {
+      border-color: #ffe3a8;
+      box-shadow: 0 28px 54px rgba(4, 8, 20, 0.68), 0 0 42px rgba(244, 204, 131, 0.58);
+      outline: none;
+    }
+
+    .art-frame canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 6px;
+      background: #1a2135;
+    }
+
+    .art-caption {
+      margin-top: 9px;
+      display: grid;
+      gap: 2px;
+    }
+
+    .art-caption strong {
+      font-size: 13px;
+      letter-spacing: 0.03em;
+      color: var(--ink);
+    }
+
+    .art-caption span {
+      font-size: 11px;
+      color: #655748;
+      font-family: "Hiragino Sans", system-ui, sans-serif;
+    }
+
+    .hud-bottom {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--washi-soft);
+      font-size: 12px;
+      font-family: "Hiragino Sans", system-ui, sans-serif;
+      white-space: nowrap;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 10, 20, 0.76);
+      backdrop-filter: blur(8px);
+      display: none;
+      place-items: center;
+      padding: 18px;
+      z-index: 30;
+    }
+
+    .modal-backdrop.is-open {
+      display: grid;
+    }
+
+    .modal-card {
+      width: min(92vw, 560px);
+      border-radius: 16px;
+      border: 1px solid rgba(244, 204, 131, 0.45);
+      background: linear-gradient(180deg, #faf4e8 0%, #efe4cf 100%);
+      color: var(--ink);
+      padding: 18px;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+      display: grid;
+      gap: 12px;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .modal-close {
+      border: 1px solid rgba(36, 30, 24, 0.25);
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-family: "Hiragino Sans", system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    .modal-canvas {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      border-radius: 10px;
+      display: block;
+    }
+
+    .modal-note {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.72;
+      font-family: "Hiragino Sans", system-ui, sans-serif;
+      color: #3f352b;
+    }
+
+    @media (max-width: 680px) {
+      .frames-cluster {
+        height: min(56vh, 390px);
+      }
+      .art-frame {
+        width: clamp(128px, 38vw, 165px);
+        padding: 7px 7px 10px;
+      }
+      .art-caption strong { font-size: 11px; }
+      .art-caption span { font-size: 10px; }
+      .hud-bottom {
+        font-size: 11px;
+        max-width: 92vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="sky" aria-hidden="true"></canvas>
+
+  <header class="hud-top">
+    <div class="title-card">
+      <p class="title-eyebrow">CUSTOM ATELIER SAMPLE</p>
+      <h1>星降る和紙灯りのアトリエ</h1>
+      <p>ドラッグや指で夜空を揺らし、浮かぶ和紙の額をタップすると作品をじっくり鑑賞できます。</p>
+    </div>
+    <div class="controls">
+      <button type="button" id="lantern-toggle" class="pill-btn" aria-pressed="true">和紙灯り：ともす</button>
+      <button type="button" id="center-btn" class="pill-btn">視点を真ん中へ</button>
+    </div>
+  </header>
+
+  <main class="gallery-stage">
+    <div id="cluster" class="frames-cluster" aria-label="浮かぶ展示作品"></div>
+  </main>
+
+  <div class="hud-bottom">ドラッグ・スワイプで夜空を見回す ／ 額をクリック・タップで拡大鑑賞</div>
+
+  <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="modal-title">作品タイトル</h2>
+        <button type="button" id="modal-close" class="modal-close">閉じる</button>
+      </div>
+      <canvas id="modal-canvas" class="modal-canvas" width="640" height="400"></canvas>
+      <p id="modal-note" class="modal-note"></p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var WORKS = [
+        {
+          id: 'alps-stars',
+          title: '北アルプスの天の川',
+          subtitle: '星空スケッチ・01',
+          note: '深夜の安曇野で仰ぎ見た稜線と、尾根のすぐ上に流れる天の川を和紙のにじみで表現しました。',
+          palette: ['#0c1733', '#233b6e', '#e7c38a', '#f8efd8'],
+          xPct: 16,
+          yPct: 24,
+          depth: 36,
+          phase: 0.2,
+          kind: 'ridge'
+        },
+        {
+          id: 'washi-moon',
+          title: '和紙に溶ける満月',
+          subtitle: '月光習作・02',
+          note: '障子越しに差し込む柔らかな月明かりと、手漉き和紙の繊維が光をふくむ瞬間を切り取りました。',
+          palette: ['#182238', '#3c4d70', '#f5d796', '#fff6dc'],
+          xPct: 58,
+          yPct: 16,
+          depth: 54,
+          phase: 1.8,
+          kind: 'moon'
+        },
+        {
+          id: 'firefly-water',
+          title: '水田に揺れる蛍灯',
+          subtitle: '初夏の記憶・03',
+          note: '風のない夜、水を張った田んぼに映る星と、ふわりと漂う蛍の光を静かな波紋に重ねました。',
+          palette: ['#10212b', '#1e424e', '#a9e2b6', '#f2e09d'],
+          xPct: 25,
+          yPct: 62,
+          depth: 20,
+          phase: 3.1,
+          kind: 'ripple'
+        },
+        {
+          id: 'lantern-corridor',
+          title: '夜更けの回廊行灯',
+          subtitle: '古民家の灯・04',
+          note: '木の廊下に置かれた小さな行灯が、暗い軒先へあたたかな琥珀色を伸ばす様子を描いています。',
+          palette: ['#241714', '#5c311f', '#eb9e54', '#fce5ba'],
+          xPct: 68,
+          yPct: 58,
+          depth: 42,
+          phase: 4.5,
+          kind: 'lantern'
+        }
+      ];
+
+      function paintArtwork(canvas, work) {
+        var ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        var w = canvas.width;
+        var h = canvas.height;
+        var grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, work.palette[0]);
+        grad.addColorStop(0.68, work.palette[1]);
+        grad.addColorStop(1, work.palette[0]);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Subtle starfield inside frame
+        for (var i = 0; i < 42; i += 1) {
+          var sx = ((i * 97 + work.phase * 70) % 100) / 100 * w;
+          var sy = ((i * 53 + work.depth * 3) % 70) / 100 * h;
+          ctx.fillStyle = 'rgba(255, 248, 228, ' + (0.28 + (i % 5) * 0.14) + ')';
+          ctx.beginPath();
+          ctx.arc(sx, sy, 0.8 + (i % 3) * 0.65, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (work.kind === 'ridge') {
+          ctx.fillStyle = 'rgba(247, 232, 198, 0.18)';
+          ctx.beginPath();
+          ctx.ellipse(w * 0.56, h * 0.28, w * 0.42, h * 0.11, -0.35, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#0d1527';
+          ctx.beginPath();
+          ctx.moveTo(0, h);
+          ctx.lineTo(0, h * 0.68);
+          ctx.lineTo(w * 0.22, h * 0.52);
+          ctx.lineTo(w * 0.42, h * 0.63);
+          ctx.lineTo(w * 0.65, h * 0.42);
+          ctx.lineTo(w * 0.84, h * 0.58);
+          ctx.lineTo(w, h * 0.49);
+          ctx.lineTo(w, h);
+          ctx.closePath();
+          ctx.fill();
+        } else if (work.kind === 'moon') {
+          var moonGlow = ctx.createRadialGradient(w * 0.54, h * 0.4, 8, w * 0.54, h * 0.4, w * 0.34);
+          moonGlow.addColorStop(0, work.palette[3]);
+          moonGlow.addColorStop(0.45, 'rgba(245, 215, 150, 0.36)');
+          moonGlow.addColorStop(1, 'rgba(245, 215, 150, 0)');
+          ctx.fillStyle = moonGlow;
+          ctx.fillRect(0, 0, w, h);
+
+          ctx.fillStyle = work.palette[3];
+          ctx.beginPath();
+          ctx.arc(w * 0.54, h * 0.4, Math.min(w, h) * 0.16, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (work.kind === 'ripple') {
+          ctx.strokeStyle = 'rgba(242, 224, 157, 0.36)';
+          ctx.lineWidth = 1.5;
+          for (var r = 1; r <= 4; r += 1) {
+            ctx.beginPath();
+            ctx.ellipse(w * 0.5, h * 0.72, w * 0.1 * r, h * 0.04 * r, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          for (var f = 0; f < 10; f += 1) {
+            var fx = w * (0.18 + (f * 0.07) % 0.66);
+            var fy = h * (0.28 + (f * 0.11) % 0.45);
+            var fg = ctx.createRadialGradient(fx, fy, 1, fx, fy, 16);
+            fg.addColorStop(0, work.palette[3]);
+            fg.addColorStop(0.5, 'rgba(169, 226, 182, 0.45)');
+            fg.addColorStop(1, 'rgba(169, 226, 182, 0)');
+            ctx.fillStyle = fg;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 16, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          var glow = ctx.createRadialGradient(w * 0.5, h * 0.54, 6, w * 0.5, h * 0.54, w * 0.42);
+          glow.addColorStop(0, work.palette[3]);
+          glow.addColorStop(0.42, 'rgba(235, 158, 84, 0.55)');
+          glow.addColorStop(1, 'rgba(235, 158, 84, 0)');
+          ctx.fillStyle = glow;
+          ctx.fillRect(0, 0, w, h);
+
+          ctx.fillStyle = 'rgba(255, 240, 206, 0.92)';
+          ctx.fillRect(w * 0.41, h * 0.32, w * 0.18, h * 0.38);
+          ctx.strokeStyle = '#382214';
+          ctx.lineWidth = 4;
+          ctx.strokeRect(w * 0.41, h * 0.32, w * 0.18, h * 0.38);
+        }
+      }
+
+      var cluster = document.getElementById('cluster');
+      var modal = document.getElementById('modal');
+      var modalTitle = document.getElementById('modal-title');
+      var modalNote = document.getElementById('modal-note');
+      var modalCanvas = document.getElementById('modal-canvas');
+      var modalClose = document.getElementById('modal-close');
+      var lanternToggle = document.getElementById('lantern-toggle');
+      var centerBtn = document.getElementById('center-btn');
+
+      var lanternOn = true;
+      var frameButtons = [];
+
+      function openModal(work) {
+        modalTitle.textContent = work.title;
+        modalNote.textContent = work.note;
+        paintArtwork(modalCanvas, work);
+        modal.classList.add('is-open');
+        modalClose.focus();
+      }
+
+      function closeModal() {
+        modal.classList.remove('is-open');
+      }
+
+      modalClose.addEventListener('click', closeModal);
+      modal.addEventListener('click', function (event) {
+        if (event.target === modal) closeModal();
+      });
+      window.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closeModal();
+      });
+
+      WORKS.forEach(function (work) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'art-frame';
+        btn.style.left = work.xPct + '%';
+        btn.style.top = work.yPct + '%';
+
+        var canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 240;
+        paintArtwork(canvas, work);
+
+        var caption = document.createElement('div');
+        caption.className = 'art-caption';
+        var title = document.createElement('strong');
+        title.textContent = work.title;
+        var sub = document.createElement('span');
+        sub.textContent = work.subtitle;
+        caption.appendChild(title);
+        caption.appendChild(sub);
+
+        btn.appendChild(canvas);
+        btn.appendChild(caption);
+        btn.addEventListener('click', function () {
+          openModal(work);
+        });
+        cluster.appendChild(btn);
+        frameButtons.push({ el: btn, work: work });
+      });
+
+      // Interactive pan/tilt via mouse or touch drag
+      var targetX = 0;
+      var targetY = 0;
+      var currentX = 0;
+      var currentY = 0;
+      var dragging = false;
+      var dragStartX = 0;
+      var dragStartY = 0;
+      var dragBaseX = 0;
+      var dragBaseY = 0;
+
+      function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+      }
+
+      window.addEventListener('pointerdown', function (event) {
+        if (modal.classList.contains('is-open')) return;
+        if (event.target.closest('button')) return;
+        dragging = true;
+        dragStartX = event.clientX;
+        dragStartY = event.clientY;
+        dragBaseX = targetX;
+        dragBaseY = targetY;
+      });
+
+      window.addEventListener('pointermove', function (event) {
+        if (dragging) {
+          targetX = clamp(dragBaseX + (event.clientX - dragStartX) * 0.06, -18, 18);
+          targetY = clamp(dragBaseY + (event.clientY - dragStartY) * 0.05, -12, 12);
+        } else if (event.pointerType === 'mouse' && !modal.classList.contains('is-open')) {
+          var nx = (event.clientX / Math.max(1, window.innerWidth) - 0.5) * 14;
+          var ny = (event.clientY / Math.max(1, window.innerHeight) - 0.5) * 9;
+          targetX = nx;
+          targetY = ny;
+        }
+      });
+
+      window.addEventListener('pointerup', function () {
+        dragging = false;
+      });
+
+      centerBtn.addEventListener('click', function () {
+        targetX = 0;
+        targetY = 0;
+      });
+
+      lanternToggle.addEventListener('click', function () {
+        lanternOn = !lanternOn;
+        lanternToggle.setAttribute('aria-pressed', String(lanternOn));
+        lanternToggle.textContent = lanternOn ? '和紙灯り：ともす' : '和紙灯り：しずかに';
+      });
+
+      // Starfield & floating washi embers canvas
+      var sky = document.getElementById('sky');
+      var skyCtx = sky.getContext('2d');
+      var stars = [];
+      var embers = [];
+
+      function resizeSky() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        sky.width = Math.floor(window.innerWidth * dpr);
+        sky.height = Math.floor(window.innerHeight * dpr);
+        skyCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function initParticles() {
+        stars = [];
+        embers = [];
+        for (var i = 0; i < 140; i += 1) {
+          stars.push({
+            x: Math.random(),
+            y: Math.random() * 0.85,
+            r: 0.6 + Math.random() * 1.6,
+            twinkle: Math.random() * Math.PI * 2,
+            speed: 0.4 + Math.random() * 1.1
+          });
+        }
+        for (var j = 0; j < 26; j += 1) {
+          embers.push({
+            x: Math.random(),
+            y: Math.random(),
+            r: 2 + Math.random() * 3.5,
+            vy: 0.00018 + Math.random() * 0.00035,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+      }
+
+      resizeSky();
+      initParticles();
+      window.addEventListener('resize', resizeSky);
+
+      var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function animate(now) {
+        var t = now * 0.001;
+        currentX += (targetX - currentX) * 0.08;
+        currentY += (targetY - currentY) * 0.08;
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        skyCtx.clearRect(0, 0, w, h);
+
+        // Soft distant mountain ridge
+        skyCtx.fillStyle = 'rgba(9, 13, 24, 0.72)';
+        skyCtx.beginPath();
+        skyCtx.moveTo(0, h);
+        skyCtx.lineTo(0, h * 0.82);
+        skyCtx.lineTo(w * 0.18, h * 0.74);
+        skyCtx.lineTo(w * 0.37, h * 0.81);
+        skyCtx.lineTo(w * 0.56, h * 0.69);
+        skyCtx.lineTo(w * 0.78, h * 0.78);
+        skyCtx.lineTo(w, h * 0.72);
+        skyCtx.lineTo(w, h);
+        skyCtx.closePath();
+        skyCtx.fill();
+
+        // Twinkling stars
+        for (var i = 0; i < stars.length; i += 1) {
+          var s = stars[i];
+          var alpha = 0.35 + 0.55 * (0.5 + 0.5 * Math.sin(t * s.speed + s.twinkle));
+          var sx = ((s.x * w - currentX * 1.4) % w + w) % w;
+          var sy = s.y * h - currentY * 0.9;
+          skyCtx.fillStyle = 'rgba(255, 248, 232, ' + alpha.toFixed(2) + ')';
+          skyCtx.beginPath();
+          skyCtx.arc(sx, sy, s.r, 0, Math.PI * 2);
+          skyCtx.fill();
+        }
+
+        // Warm floating lantern glow particles
+        if (lanternOn) {
+          for (var j = 0; j < embers.length; j += 1) {
+            var e = embers[j];
+            if (!reducedMotion) {
+              e.y -= e.vy;
+              if (e.y < -0.05) {
+                e.y = 1.05;
+                e.x = Math.random();
+              }
+            }
+            var ex = e.x * w + Math.sin(t * 0.8 + e.phase) * 18 - currentX * 2.1;
+            var ey = e.y * h - currentY * 1.5;
+            var glow = skyCtx.createRadialGradient(ex, ey, 0.5, ex, ey, e.r * 5);
+            glow.addColorStop(0, 'rgba(255, 232, 178, 0.85)');
+            glow.addColorStop(0.45, 'rgba(244, 198, 120, 0.25)');
+            glow.addColorStop(1, 'rgba(244, 198, 120, 0)');
+            skyCtx.fillStyle = glow;
+            skyCtx.beginPath();
+            skyCtx.arc(ex, ey, e.r * 5, 0, Math.PI * 2);
+            skyCtx.fill();
+          }
+        }
+
+        // Gentle 3D tilt + floating motion for each frame
+        cluster.style.transform =
+          'rotateY(' + (-currentX * 0.55).toFixed(2) + 'deg) rotateX(' + (currentY * 0.45).toFixed(2) + 'deg)';
+
+        for (var k = 0; k < frameButtons.length; k += 1) {
+          var item = frameButtons[k];
+          var bob = reducedMotion ? 0 : Math.sin(t * 1.15 + item.work.phase) * 6;
+          item.el.style.transform =
+            'translate(-50%, -50%) translate3d(0px, ' + bob.toFixed(1) + 'px, ' + item.work.depth + 'px)';
+        }
+
+        window.requestAnimationFrame(animate);
+      }
+
+      window.requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+</html>
